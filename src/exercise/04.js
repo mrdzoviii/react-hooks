@@ -2,10 +2,36 @@
 // http://localhost:3000/isolated/exercise/04.js
 
 import * as React from 'react'
+import {useLocalStorageState} from '../utils'
 
 function Board() {
   // 🐨 squares is the state for this component. Add useState for squares
-  const squares = Array(9).fill(null)
+  //const squares = Array(9).fill(null)
+
+  const [squaresHistory, setSquaresHistory] = useLocalStorageState(
+    'squares',
+    () => [Array(9).fill(null)],
+  )
+
+  const [currentMove, setCurrentMove] = useLocalStorageState('move', 0)
+
+  const squares = squaresHistory[currentMove]
+
+  console.log('here', squares)
+
+  // const initSquares = () => {
+  //   const squares = window.localStorage.getItem('squares')
+  //   if (squares) {
+  //     return JSON.parse(squares)
+  //   }
+  //   return Array(9).fill(null)
+  // }
+
+  // const [squares, setSquares] = React.useState(initSquares)
+
+  const nextValue = calculateNextValue(squares)
+  const winner = calculateWinner(squares)
+  const status = calculateStatus(winner, squares, nextValue)
 
   // 🐨 We'll need the following bits of derived state:
   // - nextValue ('X' or 'O')
@@ -17,6 +43,9 @@ function Board() {
   // This is the function your square click handler will call. `square` should
   // be an index. So if they click the center square, this will be `4`.
   function selectSquare(square) {
+    if (winner || squares[square]) {
+      return
+    }
     // 🐨 first, if there's already winner or there's already a value at the
     // given square index (like someone clicked a square that's already been
     // clicked), then return early so we don't make any state changes
@@ -31,9 +60,20 @@ function Board() {
     // 💰 `squaresCopy[square] = nextValue`
     //
     // 🐨 set the squares to your copy
+    const squaresCopy = [...squares]
+    squaresCopy[square] = nextValue
+    const squaresHistoryCopy = squaresHistory.slice(0, currentMove + 1)
+    squaresHistoryCopy.push(squaresCopy)
+    console.log(squaresHistoryCopy)
+    setSquaresHistory(squaresHistoryCopy)
+    setCurrentMove(prev => prev + 1)
   }
 
   function restart() {
+    // const clearArray = Array(9).fill(null)
+    // window.localStorage.setItem('squares', JSON.stringify(clearArray))
+    setSquaresHistory([Array(9).fill(null)])
+    setCurrentMove(0)
     // 🐨 reset the squares
     // 💰 `Array(9).fill(null)` will do it!
   }
@@ -46,29 +86,49 @@ function Board() {
     )
   }
 
+  function restoreHistory(i) {
+    setCurrentMove(i)
+  }
+
   return (
-    <div>
-      {/* 🐨 put the status in the div below */}
-      <div className="status">STATUS</div>
-      <div className="board-row">
-        {renderSquare(0)}
-        {renderSquare(1)}
-        {renderSquare(2)}
+    <>
+      <div>
+        {/* 🐨 put the status in the div below */}
+        <div className="status">{status}</div>
+        <div className="board-row">
+          {renderSquare(0)}
+          {renderSquare(1)}
+          {renderSquare(2)}
+        </div>
+        <div className="board-row">
+          {renderSquare(3)}
+          {renderSquare(4)}
+          {renderSquare(5)}
+        </div>
+        <div className="board-row">
+          {renderSquare(6)}
+          {renderSquare(7)}
+          {renderSquare(8)}
+        </div>
+        <button className="restart" onClick={restart}>
+          restart
+        </button>
       </div>
-      <div className="board-row">
-        {renderSquare(3)}
-        {renderSquare(4)}
-        {renderSquare(5)}
+      <div>
+        {squaresHistory.map((currentSquares, index) => (
+          <div>
+            <button
+              onClick={() => restoreHistory(index)}
+              disabled={currentMove === index}
+              key={`#{index}`}
+            >
+              {index === 0 ? 'Start of game' : `Move to #${index} move`}
+              {currentMove === index ? '#current' : ''}
+            </button>
+          </div>
+        ))}
       </div>
-      <div className="board-row">
-        {renderSquare(6)}
-        {renderSquare(7)}
-        {renderSquare(8)}
-      </div>
-      <button className="restart" onClick={restart}>
-        restart
-      </button>
-    </div>
+    </>
   )
 }
 
